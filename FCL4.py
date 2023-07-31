@@ -28,6 +28,8 @@ global agent_prob_dis           # Stores the mean and the variance of file reque
 global agent_actions            # Stores the actions (requested files) for each agent
 global exp_flag_record          # Records the behaviour of exploration stages
 global agent_requests_record    # Records the statistics abour agent requests
+global sf_mx_temp               # Decides on the temperature to be used for the soft max transformations
+global agent_expectations       # Stores the expected Q value for different actions given the state
 
 # This function initiliazes the global variables 
 # and creates appropriate sized arrays and 
@@ -47,6 +49,8 @@ def init_global_variables():
     global agent_requests
     global agent_prob_dis
     global agent_actions
+    global sf_mx_temp 
+    global agent_expectations
     
     number_of_agents = 3     # Setting the number of agents
     number_of_files = 4     # Setting the number of files to be shared
@@ -58,6 +62,9 @@ def init_global_variables():
     max_episode = 400
     # Decide on the max number of time steps in each epoch
     max_iteration = 1000
+    
+    # Decide on the soft max temperature
+    sf_mx_temp = 1
     
     # Generating the cooperative utility matrix
     temp_list = []
@@ -81,15 +88,17 @@ def init_global_variables():
     # each agent: 
     # QC[state of agent 1, ..., state of agent N, action of agent 1, ..., action of agent N]
     
+    # Initializing the array for the expectations for actions given a state
+    agent_expectations = np.zeros((number_of_agents,number_of_files))
     
     # Initializing the memory array
-    agent_memories = np.zeros(number_of_agents)
+    agent_memories = np.zeros(number_of_agents,dtype=int)
 
     # Initializing the request array
-    agent_requests = np.zeros(number_of_agents)
+    agent_requests = np.zeros(number_of_agents,dtype=int)
     
     # Initializing the action array
-    agent_actions = np.zeros(number_of_agents)
+    agent_actions = np.zeros(number_of_agents,dtype=int)
     
     # Initialing the mean and the variances of prob dist
     agent_prob_dis = np.zeros((number_of_agents,2))
@@ -204,6 +213,59 @@ def record_requests(record_flag):
                 plt.ylabel('Ratio of Requests') 
             plt.show()
             
+# This function decides on the actions of agents based on 
+# the exploration flag and the QC matrix
+def decide_actions():
+    global exp_flag
+    global agent_actions
+    global QC
+    global number_of_agents
+    global number_of_files
+    global agent_memories
+    global agent_expectations
+    
+    # If there is an exploration stage, actions are 
+    # randomly selected with uniform probability
+    if exp_flag == 1:   
+        for i in range(0,number_of_agents):
+            agent_actions[i] = random.randint(0,number_of_files-1)
+
+    # If there is no exploration stage, actions are 
+    # determined by a softmax transformation
+    else:
+        # Getting all the possible Q values for all 
+        # the actions based on the currrent state
+        QC_RED = QC[tuple(agent_memories)]
+        
+        for i in range(0,number_of_agents):
+            # Finding the average Q values for each action 
+            # for a given agent
+            
+            # Creating the tuple to be used for indexing the summation
+            tp = tuple(np.delete(np.arange(0,number_of_agents),i))  
+            # Summing all the Q values for a given action
+            average_q_values = np.add.reduce(QC_RED,axis=tp)
+            # Apllying the softmax transformation
+            pd = soft_max_transformer(average_q_values)
+            
+            # Producing a probability distribution depending on the 
+            # soft max of the average Q value a action has for a given state
+            agent_actions[i] = np.random.choice(np.arange(0, number_of_files), p=pd)
+            
+               
+# This function converts a set of values in an array through 
+# a soft max transformation
+def soft_max_transformer(input_array):
+    global sf_mx_temp
+    
+    soft_max_array = np.zeros(len(input_array))
+    for i in range(0,len(input_array)):
+        soft_max_array[i] = math.exp(sf_mx_temp*input_array[i])
+    
+    return np.half(soft_max_array/sum(soft_max_array))
+    
+    
+            
 if __name__ == "__main__":
     
     # Setting the print options for the numpy package
@@ -214,7 +276,7 @@ if __name__ == "__main__":
     init_global_variables()
     
     # Displaying the shape and size of the QC matrix
-    display_array_shape(display_flag=True, array=QC)
+    display_array_shape(display_flag=False, array=QC)
 
     for episode_number in range(0,max_episode):
         # Distributing random files to agents initially
@@ -226,14 +288,22 @@ if __name__ == "__main__":
             
             # Recording exploration stages
             # record_flag == True -> Record and display
-            record_exp_flag(record_flag=True, recorded_episodes=[1,100,200,399])
+            record_exp_flag(record_flag=False, recorded_episodes=[1,100,200,399])
             
             # Generating requests for each agent
             generate_requests()
             
             # Recording agent requests
             # record_flag == True -> Record and display
-            record_requests(record_flag=True)
+            record_requests(record_flag=False)
+            
+            # Deciding on the actions based on the exploration 
+            # flag and the Q function values
+            decide_actions()
+            
+            
+            
+            
             
             
             
