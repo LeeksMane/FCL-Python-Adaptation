@@ -97,13 +97,13 @@ def init_global_variables():
     # Decide on the max number of epochs
     max_episode = 1000
     # Decide on the max number of time steps in each epoch
-    max_iteration = 5000
+    max_iteration = 100
     
     # Defining the learning rate
-    learning_rate = 0.8
+    learning_rate = 1
     
     # Defining the discount rate
-    discount_rate = 0.75
+    discount_rate = 0.9
     
     # Decide on the soft max temperature
     sf_mx_temp = 0.1
@@ -470,22 +470,33 @@ def record_rewards(record_flag,record_frequency):
         if (episode_number == (max_episode-1)) and (iteration_number == (max_iteration-1)):
             means = np.add.reduce(reward_records,axis=0)
             means /= (max_episode//record_frequency)
-            reward_records[:,:] -= means
+            reward_records_dm = np.zeros(((max_episode//record_frequency),max_iteration+1))
+            reward_records_dm[:,:] = reward_records-means     # De-meaned rewards
             # At the end of the recording process, the plots are created   
             for i in range(0,(max_episode//record_frequency)):
                 if i < (max_episode//record_frequency)-10:
-                    plt.plot(np.arange(0,max_iteration,1),reward_records[i,1:max_iteration+1],
+                    plt.plot(np.arange(0,max_iteration,1),reward_records_dm[i,1:max_iteration+1],
                             color=(max(0,0.25-0.005*i),max(0,0.35-0.005*i),min(0.50+0.004*i,1),min(0.15+0.015*i,1)) )
                 else:
-                    plt.plot(np.arange(0,max_iteration,1),reward_records[i,1:max_iteration+1],
+                    plt.plot(np.arange(0,max_iteration,1),reward_records_dm[i,1:max_iteration+1],
                             color=(min(1,0.8+0.01*i),0,0,1) )
                 plt.title("Cumulative Rewards Through the Episodes:", 
                         y=0.8,
                         fontsize = 8)
                 plt.xlabel("Iteration Number") 
                 plt.ylabel("Cumulative Rewards")
-            plt.show()    
-       
+            plt.show() 
+            
+            # Plotting the rewards at the end of each episode   
+            plt.plot(np.arange(0,max_episode,record_frequency), reward_records[:,max_iteration])
+            # Applying first degree polynomial regression to the 
+            # rewards at the end of the epochs
+            [a,b] = np.polyfit(np.arange(0,max_episode,record_frequency),reward_records[:,max_iteration],1)
+            plt.plot(np.arange(0,max_episode,record_frequency),a*np.arange(0,max_episode,record_frequency)+b)
+            plt.xlabel("Episode Number") 
+            plt.ylabel("Cumulative Rewards")
+            plt.show()
+               
 # This function updates the QC values using the rewards gathered by all agents
 def update_QC_values():
     global QC
