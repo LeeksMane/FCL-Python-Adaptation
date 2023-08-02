@@ -87,15 +87,15 @@ def init_global_variables():
     create_state_mapping()
     
     # Deciding on the amount of rewards to be given to certain actions
-    reward_amounts = np.zeros(5,dtype=int)
-    reward_amounts[0] = 3   # Amount of reward recieved for already having the action file
-    reward_amounts[1] = 2   # Amount of reward recieved for receiving the action file
-    reward_amounts[2] = 1   # Amount of reward received for sending the action file to another agent
-    reward_amounts[3] = 20  # Amount of reward received for having the requested file
-    reward_amounts[4] = 0   # Amount of reward received for NOT having the requested file
+    reward_amounts = np.zeros(5)
+    reward_amounts[0] = 0.01    # Amount of reward recieved for already having the action file
+    reward_amounts[1] = 0.01    # Amount of reward recieved for receiving the action file
+    reward_amounts[2] = 0.02    # Amount of reward received for sending the action file to another agent
+    reward_amounts[3] = 0.2     # Amount of reward received for having the requested file
+    reward_amounts[4] = 0       # Amount of reward received for NOT having the requested file
     
     # Decide on the max number of epochs
-    max_episode = 1000
+    max_episode = 4000
     # Decide on the max number of time steps in each epoch
     max_iteration = 100
     
@@ -106,7 +106,7 @@ def init_global_variables():
     discount_rate = 0.9
     
     # Decide on the soft max temperature
-    sf_mx_temp = 0.1
+    sf_mx_temp = 2
     
     # Generating the cooperative utility matrix
     temp_list = []
@@ -144,7 +144,7 @@ def init_global_variables():
     agent_actions = np.zeros(number_of_agents,dtype=int)
     
     # Initilazing the rewards array
-    agent_rewards = np.zeros(number_of_agents,dtype=int)
+    agent_rewards = np.zeros(number_of_agents)
     
     # Initialing the mean and the variances of prob dist
     agent_prob_dis = np.zeros((number_of_agents,2))
@@ -420,6 +420,7 @@ def apply_actions():
                     agent_rewards[j] += reward_amounts[2]
                     updated_agent_memories [i] = state_progression_dic[agent_memories[i]][act_fil]
                     break
+
 # This function checks whether the requests were fullfilled 
 # based on the updated states and modifies the request mask
 # and distributes adequte rewards
@@ -508,9 +509,7 @@ def update_QC_values():
     global discount_rate
     
     # Updating the QC values using the collective rewards
-    QC[tuple(agent_memories), 
-    tuple(agent_actions)] = (1-learning_rate)*QC[tuple(agent_memories),
-    tuple(agent_actions)] + learning_rate*sum(agent_rewards) + learning_rate*discount_rate*np.max(QC[tuple(updated_agent_memories)])
+    QC[tuple(agent_memories)+tuple(agent_actions)] = (1-learning_rate)*QC[tuple(agent_memories)+tuple(agent_actions)] + learning_rate*sum(agent_rewards) + learning_rate*discount_rate*np.max(QC[tuple(updated_agent_memories)])
        
 if __name__ == "__main__":
     
@@ -529,7 +528,7 @@ if __name__ == "__main__":
         init_files_in_memory()
         
         # Clearing the agent request mask
-        agent_requests_mask = np.zeros(number_of_agents)
+        agent_requests_mask[:] = 0
         
         for iteration_number in range(0,max_iteration):
            
@@ -538,7 +537,7 @@ if __name__ == "__main__":
             
             # Recording exploration stages
             # record_flag == True -> Record and display
-            record_exp_flag(record_flag=False, recorded_episodes=[1,100,200,399])
+            record_exp_flag(record_flag=True, recorded_episodes=[1,100,200,399])
             
             # Deciding on the actions based on the exploration 
             # flag and the Q function values
@@ -562,7 +561,7 @@ if __name__ == "__main__":
             # Recording the rewards throughout the epochs
             # record_flag == True -> Record and display
             # One in record_frequeny episodes will be recorded
-            record_rewards(record_flag=True,record_frequency=25)
+            record_rewards(record_flag=True,record_frequency=500)
             
             # Updating the QC values using the rewards gathered
             update_QC_values()
