@@ -88,25 +88,25 @@ def init_global_variables():
     
     # Deciding on the amount of rewards to be given to certain actions
     reward_amounts = np.zeros(5)
-    reward_amounts[0] = 0.01    # Amount of reward recieved for already having the action file
+    reward_amounts[0] = 0.02    # Amount of reward recieved for already having the action file
     reward_amounts[1] = 0.01    # Amount of reward recieved for receiving the action file
     reward_amounts[2] = 0.02    # Amount of reward received for sending the action file to another agent
     reward_amounts[3] = 0.2     # Amount of reward received for having the requested file
-    reward_amounts[4] = 0       # Amount of reward received for NOT having the requested file
+    reward_amounts[4] = 0.001   # Amount of reward received for NOT having the requested file
     
     # Decide on the max number of epochs
-    max_episode = 4000
+    max_episode = 10000
     # Decide on the max number of time steps in each epoch
-    max_iteration = 100
+    max_iteration = 10
     
     # Defining the learning rate
-    learning_rate = 1
+    learning_rate = 0.75
     
     # Defining the discount rate
-    discount_rate = 0.9
+    discount_rate = 0.5
     
     # Decide on the soft max temperature
-    sf_mx_temp = 2
+    sf_mx_temp = 1
     
     # Generating the cooperative utility matrix
     temp_list = []
@@ -344,7 +344,6 @@ def decide_actions():
             average_q_values = np.add.reduce(QC_RED,axis=tp)
             # Apllying the softmax transformation
             pd = soft_max_transformer(average_q_values)
-            
             # Producing a probability distribution depending on the 
             # soft max of the average Q value a action has for a given state
             agent_actions[i] = np.random.choice(np.arange(0, number_of_files), p=pd)
@@ -537,7 +536,7 @@ if __name__ == "__main__":
             
             # Recording exploration stages
             # record_flag == True -> Record and display
-            record_exp_flag(record_flag=True, recorded_episodes=[1,100,200,399])
+            record_exp_flag(record_flag=False, recorded_episodes=[1,100,200,399])
             
             # Deciding on the actions based on the exploration 
             # flag and the Q function values
@@ -561,7 +560,7 @@ if __name__ == "__main__":
             # Recording the rewards throughout the epochs
             # record_flag == True -> Record and display
             # One in record_frequeny episodes will be recorded
-            record_rewards(record_flag=True,record_frequency=500)
+            record_rewards(record_flag=True,record_frequency=50)
             
             # Updating the QC values using the rewards gathered
             update_QC_values()
@@ -574,6 +573,6 @@ if __name__ == "__main__":
             # itearation to continue
             agent_memories = updated_agent_memories
             
-        print("The episode number "+str(episode_number)+" is complete...")        
+        
             
             
