@@ -42,6 +42,7 @@ global reward_amounts           # Decides how much each action will be rewarded
 global state_progression_dic    # A list of dictionaries containing the mapping between states and actions
 global learning_rate            # Defines the learning rate used in the iterations
 global discount_rate            # Defines the discount rate used in the iterations
+global maximum_pending_time     # Defines the maximum time a request will stand before it is externally fulfilled
 
 # This function initiliazes the global variables 
 # and creates appropriate sized arrays and 
@@ -73,8 +74,9 @@ def init_global_variables():
     global state_progression_dic
     global learning_rate
     global discount_rate
+    global maximum_pending_time
     
-    number_of_agents = 3     # Setting the number of agents
+    number_of_agents = 3    # Setting the number of agents
     number_of_files = 4     # Setting the number of files to be shared
     memory_of_agents = 2    # Setting the greatest number of files that
                             # can be stored in each agents memory
@@ -88,16 +90,16 @@ def init_global_variables():
     
     # Deciding on the amount of rewards to be given to certain actions
     reward_amounts = np.zeros(5)
-    reward_amounts[0] = 0.02    # Amount of reward recieved for already having the action file
-    reward_amounts[1] = 0.01    # Amount of reward recieved for receiving the action file
-    reward_amounts[2] = 0.02    # Amount of reward received for sending the action file to another agent
-    reward_amounts[3] = 0.2     # Amount of reward received for having the requested file
-    reward_amounts[4] = 0.001   # Amount of reward received for NOT having the requested file
+    reward_amounts[0] = 0       # Amount of reward recieved for already having the action file
+    reward_amounts[1] = 0       # Amount of reward recieved for receiving the action file
+    reward_amounts[2] = 0.1     # Amount of reward received for sending the action file to another agent
+    reward_amounts[3] = 1       # Amount of reward received for having the requested file
+    reward_amounts[4] = 0       # Amount of reward received for NOT having the requested file
     
     # Decide on the max number of epochs
-    max_episode = 10000
+    max_episode = 100000
     # Decide on the max number of time steps in each epoch
-    max_iteration = 10
+    max_iteration = 50
     
     # Defining the learning rate
     learning_rate = 0.75
@@ -107,6 +109,9 @@ def init_global_variables():
     
     # Decide on the soft max temperature
     sf_mx_temp = 1
+    
+    # Decide on the maximum pending time
+    maximum_pending_time = 5
     
     # Generating the cooperative utility matrix
     temp_list = []
@@ -447,7 +452,23 @@ def check_requests():
         # If not, then the request is yet to be fullfilled:  
         else:
             agent_rewards[i] += reward_amounts[4]
-            agent_requests_mask[i] = 1
+            agent_requests_mask[i] += 1
+            
+# This function checks whether a request has been standing 
+# long enough in which case it is automatically fulfilled
+def external_fulfilling_requests():
+    global number_of_agents
+    global maximum_pending_time
+    global agent_requests_mask
+    global agent_requests
+    global updated_agent_memories
+    global state_progression_dic
+    global agent_memories
+    
+    for i in range(0,number_of_agents):
+        req_fil = agent_requests[i]
+        if agent_requests_mask[i] == 5:
+            updated_agent_memories[i] = state_progression_dic[agent_memories[i]][req_fil]
             
 # This function records and displays the sum of collective rewards for all epochs           
 def record_rewards(record_flag,record_frequency):
@@ -533,6 +554,7 @@ if __name__ == "__main__":
            
             # Deciding on the exploration
             decide_exploration()
+            exp_flag = 0
             
             # Recording exploration stages
             # record_flag == True -> Record and display
@@ -553,6 +575,11 @@ if __name__ == "__main__":
             # record_flag == True -> Record and display
             record_requests(record_flag=False)
             
+            # Checking whether a request has been standing
+            # for adquetly long in which case it will be 
+            # automatically fullfilled
+            external_fulfilling_requests()
+            
             # Checking whether the requested were 
             # fullfilled at this iteration
             check_requests()
@@ -560,7 +587,7 @@ if __name__ == "__main__":
             # Recording the rewards throughout the epochs
             # record_flag == True -> Record and display
             # One in record_frequeny episodes will be recorded
-            record_rewards(record_flag=True,record_frequency=50)
+            record_rewards(record_flag=True,record_frequency=500)
             
             # Updating the QC values using the rewards gathered
             update_QC_values()
@@ -572,6 +599,9 @@ if __name__ == "__main__":
             # state can be written to the memories array for 
             # itearation to continue
             agent_memories = updated_agent_memories
+        
+        if (episode_number%100 == 0):   
+            print(episode_number)
             
         
             
