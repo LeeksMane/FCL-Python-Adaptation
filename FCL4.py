@@ -97,7 +97,7 @@ def init_global_variables():
     reward_amounts[4] = 0       # Amount of reward received for NOT having the requested file
     
     # Decide on the max number of epochs
-    max_episode = 100000
+    max_episode = 5000
     # Decide on the max number of time steps in each epoch
     max_iteration = 50
     
@@ -108,7 +108,7 @@ def init_global_variables():
     discount_rate = 0.5
     
     # Decide on the soft max temperature
-    sf_mx_temp = 1
+    sf_mx_temp = 0.1
     
     # Decide on the maximum pending time
     maximum_pending_time = 5
@@ -239,8 +239,10 @@ def init_files_in_memory():
     global agent_memories
     
     for i in range(0,number_of_agents):
-        agent_memories[i] = random.randint(0,number_of_per-1)
-
+        # agent_memories[i] = random.randint(0,number_of_per-1)
+        A = [1,11,4,9]
+        agent_memories[i] = A[i]
+        
 # This function generates random file request for each agent
 def generate_requests():
     global number_of_agents
@@ -488,7 +490,7 @@ def record_rewards(record_flag,record_frequency):
             reward_records[int(episode_number//record_frequency),
             int(iteration_number+1)] = reward_records[int(episode_number//record_frequency),
             int(iteration_number)] + sum(agent_rewards)
-        if (episode_number == (max_episode-1)) and (iteration_number == (max_iteration-1)):
+        if (episode_number == (max_episode)) and (iteration_number == (max_iteration-1)):
             means = np.add.reduce(reward_records,axis=0)
             means /= (max_episode//record_frequency)
             reward_records_dm = np.zeros(((max_episode//record_frequency),max_iteration+1))
@@ -543,65 +545,71 @@ if __name__ == "__main__":
     # Displaying the shape and size of the QC matrix
     display_array_shape(display_flag=False, array=QC)
 
-    for episode_number in range(0,max_episode):
-        # Distributing random files to agents initially
-        init_files_in_memory()
+    for k in range(0,100):
         
-        # Clearing the agent request mask
-        agent_requests_mask[:] = 0
+        for episode_number in range(0,max_episode):
+            # Distributing random files to agents initially
+            init_files_in_memory()
+            
+            # Clearing the agent request mask
+            agent_requests_mask[:] = 0
+            
+            for iteration_number in range(0,max_iteration):
+            
+                # Deciding on the exploration
+                decide_exploration()
+                exp_flag = 0
+                # Recording exploration stages
+                # record_flag == True -> Record and display
+                record_exp_flag(record_flag=False, recorded_episodes=[1,100,200,399])
+                
+                # Deciding on the actions based on the exploration 
+                # flag and the Q function values
+                decide_actions()
+                
+                # Modifying the states (files in the memory) based 
+                # on the actions (requested files)
+                apply_actions()
+                
+                # Generating requests for each agent
+                generate_requests()
+                
+                # Recording agent requests
+                # record_flag == True -> Record and display
+                record_requests(record_flag=False)
+                
+                # Checking whether a request has been standing
+                # for adquetly long in which case it will be 
+                # automatically fullfilled
+                external_fulfilling_requests()
+                
+                # Checking whether the requested were 
+                # fullfilled at this iteration
+                check_requests()
+                
+                # Recording the rewards throughout the epochs
+                # record_flag == True -> Record and display
+                # One in record_frequeny episodes will be recorded
+                record_rewards(record_flag=True,record_frequency=int(max_episode/200))
+                
+                # Updating the QC values using the rewards gathered
+                update_QC_values()
+                
+                # Clearing the rewards
+                agent_rewards[:] = 0
+                
+                # Since the iteration is complete, the updated 
+                # state can be written to the memories array for 
+                # itearation to continue
+                agent_memories = updated_agent_memories
+            
+            if (episode_number%1000 == 0):   
+                print(episode_number)
         
-        for iteration_number in range(0,max_iteration):
-           
-            # Deciding on the exploration
-            decide_exploration()
-            exp_flag = 0
+        print(np.mean(reward_records[0:10]))
+        print("\n")
+        print(np.mean(reward_records[-12:-1]))
             
-            # Recording exploration stages
-            # record_flag == True -> Record and display
-            record_exp_flag(record_flag=False, recorded_episodes=[1,100,200,399])
-            
-            # Deciding on the actions based on the exploration 
-            # flag and the Q function values
-            decide_actions()
-            
-            # Modifying the states (files in the memory) based 
-            # on the actions (requested files)
-            apply_actions()
-            
-            # Generating requests for each agent
-            generate_requests()
-            
-            # Recording agent requests
-            # record_flag == True -> Record and display
-            record_requests(record_flag=False)
-            
-            # Checking whether a request has been standing
-            # for adquetly long in which case it will be 
-            # automatically fullfilled
-            external_fulfilling_requests()
-            
-            # Checking whether the requested were 
-            # fullfilled at this iteration
-            check_requests()
-            
-            # Recording the rewards throughout the epochs
-            # record_flag == True -> Record and display
-            # One in record_frequeny episodes will be recorded
-            record_rewards(record_flag=True,record_frequency=500)
-            
-            # Updating the QC values using the rewards gathered
-            update_QC_values()
-            
-            # Clearing the rewards
-            agent_rewards[:] = 0
-            
-            # Since the iteration is complete, the updated 
-            # state can be written to the memories array for 
-            # itearation to continue
-            agent_memories = updated_agent_memories
-        
-        if (episode_number%100 == 0):   
-            print(episode_number)
             
         
             
