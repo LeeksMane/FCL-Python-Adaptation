@@ -97,7 +97,7 @@ def init_global_variables():
     reward_amounts[4] = 0       # Amount of reward received for NOT having the requested file
     
     # Decide on the max number of epochs
-    max_episode = 5000
+    max_episode = 500000
     # Decide on the max number of time steps in each epoch
     max_iteration = 50
     
@@ -490,7 +490,7 @@ def record_rewards(record_flag,record_frequency):
             reward_records[int(episode_number//record_frequency),
             int(iteration_number+1)] = reward_records[int(episode_number//record_frequency),
             int(iteration_number)] + sum(agent_rewards)
-        if (episode_number == (max_episode)) and (iteration_number == (max_iteration-1)):
+        if (episode_number == (max_episode-1)) and (iteration_number == (max_iteration-1)):
             means = np.add.reduce(reward_records,axis=0)
             means /= (max_episode//record_frequency)
             reward_records_dm = np.zeros(((max_episode//record_frequency),max_iteration+1))
@@ -545,7 +545,7 @@ if __name__ == "__main__":
     # Displaying the shape and size of the QC matrix
     display_array_shape(display_flag=False, array=QC)
 
-    for k in range(0,100):
+    for k in range(0,1):
         
         for episode_number in range(0,max_episode):
             # Distributing random files to agents initially
